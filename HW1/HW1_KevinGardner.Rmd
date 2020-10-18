@@ -1,0 +1,171 @@
+---
+title: "BZAN 535 - Homework 1"
+author: "Kevin Gardner"
+date: "August 30, 2016"
+output: pdf_document
+---
+
+```{R, echo=FALSE, messages=FALSE, warnings=FALSE}
+rm(list=ls())
+# install.packages('data.table')
+suppressMessages(library(data.table))
+# install.packages('dplyr')
+suppressMessages(library(dplyr))
+# install.packages('ggplot2')
+suppressMessages(library(ggplot2))
+suppressMessages(library(ggplot2))
+#install.packages('png')
+suppressMessages(library(png))
+# install.packages('grid')
+suppressMessages(library(grid))
+```
+
+##Problem 1
+Determine the number of orders, the first and last shipping date, as well as totals for price and units sold. List the 20 products with the highest total dollar sales, along with their first and last order dates and number of orders and number of units. How many of these top 20 selling products are we still selling in 2016 (the last year in the data orders)?  
+
+```
+select productid
+, count(*) as units_sold
+, sum(numunits*unitprice) as total_sales
+, max(shipdate) as last_date
+, min(shipdate) as first_date
+from orderline group by productid 
+order by total_sales desc limit 20;
+```  
+
+```{r, echo = FALSE}
+dt <- data.table(read.csv('~/Dropbox/MSBA\ Program/Fall\ 2016/BZAN\ 535/HW1/p1.csv')); dt
+```  
+
+The following `17` products are still selling as of `2016`.  
+
+```{r, echo = FALSE}
+dt %>% arrange(desc(last_date)) %>% head(17)
+```
+
+##Problem 2
+Product `10361` was the best seller, product `11168` was the second-best seller, while product `11196` has had a very long life cycle.  For each of these three products, report by year the number of units sold and the average per unit price.  Comment on what this reveals about the pattern of sales for popular items.
+
+```
+select productid
+, sum(numunits) as total_units
+, extract(year from shipdate) as year_sold
+, avg(unitprice) as mean_unitprice
+from orderline 
+where productid IN ('10361','11168','11196')
+group by year_sold, productid
+order by productid, year_sold;
+```
+
+```{r, echo = FALSE}
+dt <- data.table(read.csv('~/Dropbox/MSBA\ Program/Fall\ 2016/BZAN\ 535/HW1/p2.csv')); dt
+```
+
+```{r, echo = FALSE}
+dt <- group_by(dt, productid)
+
+ggplot(data = dt,
+       aes(x = dt$year_sold, y = dt$total_units, group = dt$productid
+       , colour=factor(productid)
+       )
+       ) + 
+        geom_line(stat = "identity") + 
+        #theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+        xlab("Year") + 
+        ylab("Units Sold") + 
+        ggtitle("Total Units Sold By Year, \n Three Selected Products, 2009-2016")
+```  
+
+Plotting the data we see that popular items lose popularity over time. Product `11169`, which experienced a shorter lifecycle than the other two products, grew in popularity the first year and then shrunk in popularity at an increasing rate in the remaining two years. This suggests that for popular items there may be a sharp difference bewteen shorter and longer lifecycle products with respect to the pattern of sales over time.  
+
+##Problem 3
+Compute monthly sales totals for this business over the eight years. Append to this 
+the best selling product each month and what \% of monthly sales are from this one item. Discuss what you learn. Show output only for `2009` and `2016`, but you should examine all `8` years.  
+
+```
+select t1.billdate
+, t1.sales_month
+, t1.sales_year
+, t1.total_sales
+, t2.productid
+, t2.maxsales
+, (t2.maxsales/t1.total_sales)*100 as percent_sales
+
+# Monthly sales totals for the business
+from (
+        select billdate
+        , month(billdate) as sales_month
+        , year(billdate) as sales_year
+        , sum(totalprice) as total_sales
+        from orderline
+        group by month(billdate), year(billdate)
+) as t1
+
+# Monthly sales totals for best selling product
+, (
+        select billdate
+        , month(billdate) as sales_month
+        , year(billdate) as sales_year
+        , productid
+        , max(totalprice_sum) as maxsales
+        from (
+                select billdate
+                , month(billdate) as sales_month
+                , year(billdate) as sales_year
+                , productid
+                , sum(totalprice) as totalprice_sum
+                from orderline
+                group by sales_month, sales_year, productid
+                order by  sales_year, sales_month, totalprice_sum
+        ) as a group by sales_month, sales_year
+) as t2
+
+where t1.sales_month = t2.sales_month and t1.sales_year = t2.sales_year
+order by t1.sales_year,t1.sales_month;
+```
+Below are the data for `2009` and `1016`.
+```{r, echo=FALSE}
+dt <- data.table(read.csv('~/Dropbox/MSBA\ Program/Fall\ 2016/BZAN\ 535/HW1/p3.csv'))
+dt %>% filter(sales_year=='2009' | sales_year=='2016')
+setnames(dt,"maxsales","top_product")
+setnames(dt,"total_sales","business")
+```
+
+```{r, echo=FALSE}
+dt <- dt %>% arrange(sales_year, sales_month)
+dt$t <- paste(paste(dt$sales_year,dt$sales_month, sep="/"),1,sep="/") %>% as.Date()
+```  
+
+```{r, echo=FALSE}
+dt <- group_by(dt, productid)
+ggplot(dt, aes(t)) + 
+  geom_line(aes(y = business, colour = "business")) +
+  geom_line(aes(y = top_product, colour = "top product")) +
+  xlab("") +
+  ylab("Total Sales") + 
+  ggtitle("Monthly Sales Totals for the \n Business and the Top Product, 2009-2016")
+```
+
+Plotting the data we see there are seasonal fluctuations with highest sales occuring in December. Also, the trend for overall sales is more positive than the trend for top products sales.
+
+##Problem 4
+Order date appears in the orders table while shipping date appears in orderline. We should be concerned about delays in shipping. Join these tables and identify the largest shipping delays. Show the `10` worst cases. 
+
+```
+select t1.orderid, t1.orderdate, t2.shipdate
+, datediff(t2.shipdate, t1.orderdate) as delay
+from orders as t1 join orderline as t2
+on t1.orderid = t2.orderid
+order by delay desc
+limit 10;
+```  
+```{r, echo=FALSE}
+dt <- data.table(read.csv('~/Dropbox/MSBA\ Program/Fall\ 2016/BZAN\ 535/HW1/p4.csv'))
+dt
+```
+
+
+
+
+
+

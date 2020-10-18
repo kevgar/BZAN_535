@@ -1,0 +1,159 @@
+---
+title: "BZAN 535 - Homework 4"
+author: "Kevin Garder"
+date: "September 20, 2016"
+output: html_document
+---
+
+```{R, echo=FALSE, messages=FALSE, warnings=FALSE}
+library(data.table)
+library(ggvis)
+library(dplyr)
+library(xlsx)
+```
+
+# Question 1  
+> We wish to measure the impact of having an item appear in the Kroger weekly advertisement. You will study five 26 oz. Ragu pasta sauce with upc in (3620000250, 3620000300, 3620000350, 3620000441, 3620000446). For three Kentucky stores (333, 352, 377), these five upcs were all displayed in the weekly flyer (Interior Page Feature) for 18 weeks, with 14 of those weeks in year 2, i.e., with weeks > 52. This information is contained in the table carbo_causal_lookup.  
+
+> a. Show a query that will capture all the transaction data for these upcs and stores,aggregating the data by week, and computing the total unit sales, summed across stores and upcs. (You may find it useful to include other columns later, but these are not required for answering 1a.)  
+
+```
+select week, sum(units) as sum_units, sum(dollar_sales)/sum(units) as avg_price
+from carbo_transactions ct
+where ct.upc in (3620000250,3620000300,3620000350,3620000441,3620000446)
+and ct.store in (333,352,377)
+group by week;
+```  
+
+> b. Using the carbo_causal_lookup table, identify the 18 weeks where these upcs appear in the interior of the weekly flyer. 
+
+```
+select *
+from carbo_causal_lookup
+where upc in (3620000250,3620000300,3620000350,3620000441,3620000446)
+and store in (333,352,377)
+and feature_desc in ('Interior Page Feature','Interior Page Line Item')
+group by week;
+```  
+
+```{R, echo = FALSE}
+dt1a <- data.table(read.csv('~/Dropbox/MSBA\ Program/Fall\ 2016/BZAN\ 535/HW4/q1_a.csv'))
+dt1b <- data.table(read.csv('~/Dropbox/MSBA\ Program/Fall\ 2016/BZAN\ 535/HW4/q1_b.csv'))
+
+# Add column with value=TRUE if product was featured in flyer, FALSE otherwise
+dt1c <- dt1a[, in.catalog.interior:= week %in% dt1b$week]
+
+#write.xlsx(x = dt1c, file = paste("q1c.xlsx"),
+#        sheetName = "Sheet1", row.names = FALSE)
+```  
+
+> c. Create a plot of total unit sales by week, highlighting the 18 weeks identified in b. Annotate any other weeks as seems relevant, based on other information available from the transactions or causal_lookup tables.
+
+```{R, echo=FALSE, messages=FALSE, warnings=FALSE}     
+dt1c %>% 
+        ggvis(~week, ~sum_units, fill=~factor(in.catalog.interior)) %>%
+        layer_points() %>%
+        layer_smooths() %>%
+        hide_legend('fill')
+```  
+
+> d. Discuss what you can learn from the plot. Using just the plot, does there appear to be any indication that the weekly advertisements help sales of these products?
+
+The plot does not seem to indicate that the weekly advertizements help sales. The 18 weeks identified in b (colored light blue) do not seem to have higher sales than the other 86 weeks.  
+
+# Question 2  
+
+> Propose a paired sample method to evaluate the effect of the flyer.  
+
+> a. First, identify the criteria you would propose for choosing pairs of weeks. What should they have in common?   
+
+From the plot we see there is correlation between week and unit sales, so in subsetting our sample we want to look at weeks that are similar to each other so  we can detect differences that are due to the flyer. Products are advertized in the flyer intermittently from week 47-104, so to pair the data we focus on unit sales within this period. This gives us subset with 18 observation with advertizement and 44 observations without advertizement.  
+
+We want to pair observations by criteria that effect unit sales. Since all `5` products are Ragu pasta sauce and all `3` stores are in Kentucky, we will assume UPC and store are not significanly influencing sales. We expect a strong relationship between average price and unit sales, and we also suspect that seasonaly could influences unit sales.
+
+```{R, echo=FALSE, messages=FALSE, warnings=FALSE}   
+# Filter out high and low prices
+dt2a <- dt1c %>% filter(
+        avg_price >= (mean(avg_price) - 0.5*sd(avg_price)) 
+        & avg_price <= (mean(avg_price) + 0.5*sd(avg_price)) 
+        ) %>%
+# Filter out weeks outside the range 43-104
+filter(week>=43)
+```
+Below is a scatterplot of the subset of weeks we'll choose pairs from.  
+
+```{R, echo=FALSE, messages=FALSE, warnings=FALSE}     
+dt2a %>% 
+ggvis(~week, ~sum_units, fill=~factor(in.catalog.interior)) %>% 
+layer_points() %>%
+layer_smooths() %>%
+hide_legend('fill')
+```  
+
+> b. Second, select weeks to be paired with at least 10 of the 18 weeks from 1b.
+Explain the rationale for your choices, arguing why these matches were provided
+and why any weeks not used were omitted.  
+
+Most of the "with advertisement" observations are lagged one week behind one of the "without advertizement" observations, so we increment the week by 1 for the "with advertizement" observations and are able to obtain 12 pairs. Below is pair of boxplots for the resulting sample.
+
+```{R, echo=FALSE, messages=FALSE, warnings=FALSE}     
+a <- dt2a %>% filter(in.catalog.interior==TRUE) %>% select(sum_units, week)
+b <- dt2a %>% filter(in.catalog.interior==FALSE) %>% select(sum_units, week)
+#intersect(a$week+1, b$week) %>% length()
+a$week <-  a$week + 1.0
+dt2b <- a %>% left_join(b, by="week") %>% filter(!is.na(sum_units.y)) %>% setnames(c("with.adv", "week", "without.adv"))
+no.flyer <- dt2b$without.adv
+flyer <- dt2b$with.adv
+pairs <- data.frame(no.flyer,flyer)
+boxplot(pairs)
+
+#write.xlsx(x = dt1c, file = paste("q2_b.xlsx"),
+#        sheetName = "Sheet1", row.names = FALSE)
+```  
+
+> c. Conduct a paired sample hypothesis test. Write out the null and alternative
+hypotheses very clearly in the language of the problem. (Make sure that both
+hypotheses include the word ‘average’ or ‘expected’.) Show all the details of the test using computer output. Interpret the p-value clearly and state your
+conclusion.  
+
+We test the hypotheses:   
+$H_{0}$: average unit sales without flyer - average of unit sales with flyer = 0  
+$H_{1}$: average of unit sales without flyer - average of unit sales with flyer < 0  
+
+```{R}
+t.test(pairs$no.flyer, pairs$flyer, alternative = "less", paired = TRUE)
+```  
+
+> d. Comment about the correlation between the pairs of your data, and what this
+indicates about the effectiveness of your pairing.  
+
+```{R}
+cor(pairs$no.flyer, pairs$flyer)
+```  
+
+The correlation $\rho=0.653367$ is somewhat strong and suggests that the pairing strategy was reasonably effective.
+
+# Quesion 3  
+
+> One might also try to use more of the data and give no thought to pairing, just treating the data as two independent samples.  
+
+> a. Out of the 104 -18 weeks you did not have the products displayed in the inner pages, which should be included for this comparison. Justify your choices of exclusions and inclusions.  
+
+Here we simply choose a random sample from weeks without advertisements in order to obtain 18 pairs.  
+
+```{R, echo=FALSE, messages=FALSE, warnings=FALSE}
+treatment <- dt1c %>% filter(in.catalog.interior==TRUE)
+control  <-  dt1c %>% filter(in.catalog.interior==FALSE)
+set.seed(533)
+control <- control[sample(nrow(control), 18), ]
+df <- data.frame(control$sum_units, treatment$sum_units)
+```  
+
+> b. Conduct an independent sample test using the Interior Page Feature weeks and the other weeks you identified in 3a. Show the test results using output from JMP, interpret the p-value, and state your conclusion.  
+
+
+```{R}
+t.test(control$sum_units, treatment$sum_units, alternative = "less")
+```
+
+Using independent samples we get a p-value of $0.03286$ so we are able to reject the null hypothesis at the 95% confidence level.   

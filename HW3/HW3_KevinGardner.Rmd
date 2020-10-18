@@ -1,0 +1,99 @@
+---
+title: "BZAN 535 - HW3"
+author: "Kevin Garder"
+date: "September 14, 2016"
+output: pdf_document
+---
+
+```{R, echo=FALSE, messages=FALSE, warnings=FALSE}
+rm(list=ls())
+# install.packages('data.table')
+suppressMessages(library(data.table))
+# install.packages('dplyr')
+suppressMessages(library(dplyr))
+# install.packages('ggplot2')
+# suppressMessages(library(ggplot2))
+#install.packages('png')
+suppressMessages(library(png))
+# install.packages('grid')
+suppressMessages(library(grid))
+```  
+
+##Question 1.  
+> Go to Tableau.com -> Stories -> Viz Gallery, choose a visualization that is particularly good, and explain what makes this an effective visual. (Don’t choose either of the ones shown in class.) Provide a copy of the image and the link for this visual.  
+
+This visual is effective because it orients the reader by with a high-level summary of the data, then allows the reader to quickly and easily drill down to the level of detail necesairy to make decisions. With this tool, a manager or salesperson could identify the highest-value leads and prioritize thier efforts accordingly.  
+
+```{r, echo=FALSE, cache=TRUE}
+img <- readPNG("q1_1.png")
+grid.raster(img)
+```  
+
+```{r, echo=FALSE, cache=TRUE}
+img <- readPNG("q1_2.png")
+grid.raster(img)
+url="http://www.tableau.com/stories/gallery/sales-and-opportunities"
+url
+```  
+
+##Question 2.  
+> In HW2, you produced a map based on the locations of Carbo database Kroger stores. Create a map that is a useful visualization. Use “Filled map” as the mark. Define color based on some measure of your choice. Display the map and explain what business-relevant question this map would be useful for.  
+
+This map could help Kroger identify states where efforts should be made to add stores or grow sales of existing stores.  
+
+```{r, echo=FALSE, cache=TRUE}
+img <- readPNG("q2.png")
+grid.raster(img)
+```  
+
+##Question 3. 
+> This question involves the Carbo data from dunnhumby. There are four commodities: pasta, pasta sauce, pancake syrup and pancake mix.
+
+> a. How many brands are there for each commodity and how many UPCs are there for each commodity? Show the mySQL query for answering this pair of questions and report the results.  
+
+```
+select commodity
+, count(distinct brand) as num_brands
+, count(distinct upc) as num_upcs
+from rmee_dh.carbo_product_lookup
+group by commodity;
+```  
+
+```{r, echo = FALSE}
+dt <- data.table(read.csv('~/Dropbox/MSBA\ Program/Fall\ 2016/BZAN\ 535/HW3/q3.csv')); dt
+```  
+
+> b. Using Tableau, import the dh_product_lookup file and create a tree map where you categorize first on commodity and then on brand. The measure determining the size of each rectangle is the number of UPCs. Display the resulting image and provide a couple of insights based on this display.  
+
+Pasta and pasta sauce account for a much larger number of brands and UPCs than pancake mixes and syrups. Between pasta and pasta sauce there are more brands and UPCs for pasta, whereas between pancake mixes and syrups there are more brands and UPCs for syrups.  
+
+```{r, echo=FALSE, cache=TRUE}
+img <- readPNG("q3_b.png")
+grid.raster(img)
+```  
+
+> c. In Tableau, join the table dh_transactions, and create a tree map
+similar to 3b, but with size based on sum of sales. Copy the image
+from this sheet and explain how it differs from the tree map in 3b.  
+
+Pasta and pasta sauce account for much higher total sales than pancake mixes and syrups. In contrast to the previous display, the total sales are higher for pasta sauce than for pasta. Similar to the previous display, total sales are greater for syrups than for pancake mixes.  
+
+```{r, echo=FALSE, cache=TRUE}
+img <- readPNG("q3_c.png")
+grid.raster(img)
+```  
+> d. Create a dashboard with the sheets from 3b and 3c. Add a filter for commodity. Select only pasta and pasta sauce in the filter (so that pancake mix and syrup disappear) and copy the image.  
+
+```{r, echo=FALSE, cache=TRUE}
+img <- readPNG("q3_d.png")
+grid.raster(img)
+```  
+
+> e. Show a scatterplot with unit sales on one axis and dollar sales on the other axis. Drag UPC to “Detail,” which controls the level of aggregation. Color by commodity. Add product description and product size to the tooltip. Decide whether to make the axes linear or logarithmic. Explain how you might use this visualization in a meeting. Add any other features that you believe will enhance the visualization and its usefulness.  
+
+This visualization shows a strong positive relationship between dollar sales and unit sales. This relationship is obvious and thus not particularly interesting, so I would not use the visualization in a meeting unless I were asked to.    
+
+```{r, echo=FALSE, cache=TRUE}
+img <- readPNG("q3_e.png")
+grid.raster(img)
+```  

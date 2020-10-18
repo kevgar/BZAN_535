@@ -1,0 +1,3 @@
+# The following query can be used to obtain the counts forassociation rules:SELECT sum(Milk), sum(Bananas), sum(Milk*Bananas), count(*)FROM (SELECT basket_id
+, max(case when commodity_desc='FLUID MILK PRODUCTS' then 1 else 0 end) Milk
+, max(case when sub_commodity_desc='BANANAS' then 1 else 0 end) BananasFROM dh.journey_transaction_data jtJOIN dh.journey_product jp ON jt.product_id=jp.product_idWHERE jp.department NOT IN ('KIOSK-GAS', 'MISC SALES TRAN')GROUP BY basket_id);

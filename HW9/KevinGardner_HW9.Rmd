@@ -1,0 +1,101 @@
+---
+title: "Homework 9 - Categorical Data"
+author: "Kevin Garder"
+date: "Due Nov. 12, 2016"
+output: html_document
+---
+
+## Question 1  
+
+> Using the dh journey data and a query similar to that on slide 5 of Lecture 22
+(already posted on Bb): 
+
+```
+library(data.table)
+library(dplyr)
+library(bit64)
+
+journey_transacion_data <- 
+        data.table(fread(
+                "/Users/kjgardner/Dropbox/MSBA\ Program/Fall\ 2016/BZAN\ 535/Journey/transaction_data.csv"))
+
+journey_product  <-
+        data.table(fread(
+                "/Users/kjgardner/Dropbox/MSBA\ Program/Fall\ 2016/BZAN\ 535/Journey/product.csv"))
+```
+
+```
+library(sqldf)
+library(RH2)
+
+sqlString <- 
+"SELECT sum(Milk*Bananas)*count(*)/(sum(Milk)*sum(Bananas)) as lift
+FROM (SELECT basket_id, sum(sales_value) as sales,
+max(case when commodity_desc='FLUID MILK PRODUCTS' then 1 else 0 end) Milk,
+max(case when sub_commodity_desc='BANANAS' then 1 else 0 end) Bananas
+FROM 'journey_transacion_data' jt
+JOIN 'journey_product' jp ON jt.product_id=jp.product_id
+WHERE jp.department NOT IN ('KIOSK-GAS', 'MISC SALES TRAN')
+GROUP BY basket_id) j
+WHERE sales < 10;"
+
+q1 <- sqldf(sqlString,stringsAsFactors = FALSE)
+
+# Writing to csv file
+write.csv(x = q1
+           , file = '/Users/kjgardner/Desktop/HW9/q1.csv'
+           , row.names = FALSE)
+           
+#file = '/Users/kjgardner/Dropbox/MSBA\ Program/Fall\ 2016/BZAN\ 535/HW9/q1.csv'
+```  
+
+> a. At the beginning of Lecture 21, we compute lift = 1.283 for bananas
+and soft drinks. Now compute the lift for this pair of products
+separately for sales < $10, $10-<$20, $20-<$40, $40-<$80, and ≥$80.  
+
+> b. Interpret the results for your calculations for lift at each basket size vs.
+the collective lift = 1.283. Explain why the difference arises. Which
+lift calculation best captures the affinity or lack thereof of bananas and
+soft drinks?  
+
+## Question 2   
+
+> The buytest data summarize results for a test mailing of 10,000 catalogs.
+Purchase indicates whether the catalog recipient made a purchase or not.
+
+> a. Using the buytest data, conduct separate chi-square tests for Purchase
+vs. Gender and Purchase vs. Married. In each case, state the
+conditional percentage of making a purchase for each level of the
+independent variable and comment on what the chi-square test leads
+one to conclude. (Note: 0 = No; 1 = Yes.)  
+
+> b. Compute the odds ratio for making a purchase depending on whether
+the catalog recipient is married or not; do this controlling for whether
+the recipient owns a home or not. That is, you will have two odds
+ratios, one for those who own a home (1) and another for those who
+are do not (0). Interpret each odds ratio carefully. Give an interval
+estimate for each true ratio. Is the association stronger for renters or
+for home owners? Explain.  
+
+## Question 3  
+
+> For the dataset Household Spend, which summarizes the 801 Kroger
+shoppers for which we have demographic information, construct a
+contingency table for Income vs. Age. Since there are 12 income categories,
+and one has only 5 households, the initial table of counts will be too sparse.
+To remedy this problem, combine the top six categories into a single category
+labeled 100K+. Is there compelling evidence that, among (frequent) Kroger customers,
+income and age are not independent? Interpret the mosaic plot and
+summarize the relationship between these two variables. Discuss the cell(s)
+that most departs from what is expected under independence? (Note: Be
+sure to order the categories using the column property “Label ordering” so
+that the plot is useful, with age and income categories in correct order.) You
+can use JMP’s “cell Chi-square” to spot cells with the most significant
+departure from independence.
+
+## Question 4  
+
+> Simpson’s paradox – Lecture 22 ends with an introduction to the Bendix case
+study. Summarize in a paragraph the two different ways of looking at the
+data. Explain for a jury what is the reason for the seeming contradiction.  
+

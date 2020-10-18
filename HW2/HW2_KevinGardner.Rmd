@@ -1,0 +1,117 @@
+---
+title: "BZAN 535 - Homework 2"
+author: "Kevin Gardner"
+date: "September 7, 2016"
+output: pdf_document
+---
+
+```{R, echo=FALSE, messages=FALSE, warnings=FALSE}
+rm(list=ls())
+# install.packages('data.table')
+suppressMessages(library(data.table))
+# install.packages('dplyr')
+suppressMessages(library(dplyr))
+# install.packages('ggplot2')
+suppressMessages(library(ggplot2))
+#install.packages('png')
+suppressMessages(library(png))
+# install.packages('grid')
+suppressMessages(library(grid))
+```  
+
+##Problem 1  
+> CARBO: Using the dh carbo data, compute dollar sales per store for pasta sauce and separately the dollar sales for pasta. a) Present the SQL query you used for this calculation. b) Using JMP’s Graph Builder, create side-by-side box plots of these totals per store, separated by geography. (You will have 4 box plots.) Copy the graph and comment on what insights this graph provides.  
+
+##part a.  
+
+```
+select t1.dollar_sales_pasta_sauce, t2.dollar_sales_pasta, t1.store, t1.geography
+from 
+	# dollar sales per store for pasta sauce
+	(select sum(dollar_sales*units) as dollar_sales_pasta_sauce, store, geography
+	from carbo_transactions
+	where upc IN (select distinct upc from carbo_product_lookup where commodity = 'pasta sauce')
+	group by store) as t1
+    
+    # dollar sales per store for pasta
+	, (select sum(dollar_sales*units) as dollar_sales_pasta, store, geography
+	from carbo_transactions
+	where upc IN (select distinct upc from carbo_product_lookup where commodity = 'pasta')
+	group by store) as t2
+    
+where t1.store = t2.store and t1.geography = t2.geography;
+```  
+
+##part b.  
+
+From the graph we see there are a handful of stores which sell a lot more pasta and pasta sauce than the rest of stores. These observations are likely having a strong influence on the mean. In regards to geography, we observe that sales are higher for both products in geography `2` than in geography `1`.  
+
+```{r, echo=FALSE, cache=TRUE}
+img <- readPNG("p1.png")
+grid.raster(img)
+```  
+
+##Problem 2  
+> Join the data from question 1 to the store_lookup table so that you have the zipcode for each store and create a map to display the total pasta sauce sales for each zipcode. Distinguish between Geography 1 and Geography 2 either with separate maps or by some other means. Are the differences in sales due to regional (or urban vs. rural) differences?  
+
+From the graph we see there are clusters of high selling stores near urban areas, and that the geographic difference noted in part 1 can be attributed to stores being further North, perhaps because they are closer to Cincinati where Kroger's is headquartered.  
+
+```{r, echo=FALSE, cache=TRUE}
+img <- readPNG("p2.png")
+grid.raster(img)
+```  
+
+##Problem 3  
+> Slide 20 from Lecture 5 contains a query that computes the number of orders per household by zipcode. Multiply this number by 1000 to get the number of orders per 1000 households. a) Examine the distribution of penetration. Describe the distribution in terms of its histogram and box plot. What are the values for the 25th, 50th, and 75th percentiles? b) The analysis in 4a used zipcode as the geographic unit. Repeat the computation, using scf instead (that is, group by the first 3 digits of zipcode). c) Now compute orders per 1000 households by state and produce a map. d) Discuss how you would present insights from these analyses in a meeting of this company. What analysis would you use (a, b, and/or c) and in what order?  
+
+##part a.  
+
+From the figure we see the values for the `25th`, `50th` and `75th` percentile are 0.38975, 0.9846 and 2.78775, respectively.  
+
+```{r, echo=FALSE, cache=TRUE}
+img <- readPNG("q3_a.png")
+grid.raster(img)
+```  
+
+##part b.  
+
+From the figure we see the values for the `25th`, `50th` and `75th` percentile are 0.1974, 0.443 and 1.2324, respectively.  
+
+```{r, echo=FALSE, cache=TRUE}
+img <- readPNG("q3_b.png")
+grid.raster(img)
+```  
+
+##part c.  
+
+Below is a map of U.S. states colored by market penetration.  
+
+```{r, echo=FALSE, cache=TRUE}
+img <- readPNG("q3_c.png")
+grid.raster(img)
+```  
+
+##part d.  
+
+I would start with analysis c as an overview of market penetration, then use analysis b and perhaps analysis a to provide a more granular view of where efforts should be made to grow market penetration.
+
+##Problem 4  
+> In Lecture 5, you were introduced to a parallel plot using the file crime.jmp. a) Choose and highlight two states, display a parallel plot and discuss what you learn from this comparison. (Also, explain why you thought a comparison of those two states would be of interest.)  
+
+The plot below compares New York and Massachusetts with respect to crime rates. I thought a comparison of the two states would be of interest because both have high population density and are located in the northeast.  
+
+```{r, echo=FALSE, cache=TRUE}
+img <- readPNG("p4.png")
+grid.raster(img)
+```  
+
+##Problem 5  
+> In Lecture 5, we joined windows analyzing burglary rates to create an application. Create an application with a state map and a histogram using a crime other than burglary. Include a parallel plot as well. Highlight either the low end of the high end for that rate and take a screen shot showing your application. Provide a brief discussion of insights based on the graph.  
+
+From the graph we see that Louisiana and Nevada have murder rates within the upper tail of the distribution. In the parallell plot we see these two states are nearly off the chart in murder rate, which is represented by the leftmost segment of the line.  
+
+```{r, echo=FALSE, cache=TRUE}
+img <- readPNG("q5.png")
+grid.raster(img)
+```  
+

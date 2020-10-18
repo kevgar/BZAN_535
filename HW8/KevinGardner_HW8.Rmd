@@ -1,0 +1,72 @@
+---
+title: "Homework 8"
+author: "Kevin Garder"
+date: "Due 11/02/2016"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+> Use the following query to acquire the data. Export the 74,596 records to JMP.
+
+```
+SELECT * from carbo_transactions WHERE upc in (3000005970, 3000005300,
+9999967727) and geography = 1 ORDER BY upc;
+```
+
+## Question 1  
+
+> Identify what products these three upc denote. Using Graph Builder, plot the
+weekly sales volume (number of units) for each of these three products over time.
+Fit a spline to each. Describe what you see.
+
+## Question 2  
+
+> Using median unit price each week has advantages over using mean unit price per
+week. Answer the following questions using simple regression models with X =
+ln(weekly median unit price).
+
+> a. Does Aunt Jemima syrup weekly unit sales show price sensitivity? Give a
+95% confidence interval for price elasticity of demand.
+
+> b. Estimate the price sensitivity for the Kroger store brand (Private Label)
+syrup and compare this result with that for Aunt Jemima syrup. Does the
+difference make sense?
+
+## Question 3  
+
+> Show residual plots for the regression models fit for 2a and 2b and try to validate
+whether these models do or do not satisfy the assumptions of constant price
+elasticity, constant variance, and independently distributed normal errors
+(residuals).
+
+## Question 4  
+
+> Fit a multiple regression model using Fit Model for Y = ln(weekly Private Label
+syrup units sold) with X1 = ln(weekly median unit price) and include Week and
+Week2 in the models as well. Interpret the following output, explaining how the
+addition of the terms involving Week
+
+> a. Changes R2.
+
+> b. Changes the RMSE.
+
+> c. Changes autocorrelation in the residuals.
+
+> d. Changes the estimated price elasticity.
+
+## Question 3  
+
+> The file HW8 sales by household.jmp lists the number of times each household
+bought these items. Use Analysis – Multivariate Methods – Multivariate to
+produce a matrix of scatterplots and correlations. Interpret these three coefficients,
+explaining why they have the sign and magnitude that they do. What would be the
+effect of adding (0 0 0) for households with no trips on the correlation
+coefficients?
+
+## Extra credit:  
+
+> Do you see evidence of cross-elasticity for any of these products.
+

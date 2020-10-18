@@ -1,0 +1,25 @@
+use rmee_dh;
+
+select
+count(*) as numTotal
+, sum(Bananas*SoftDrinks) as numBananasAndSoftdrinks
+, sum(Bananas) as numBananas
+, sum(SoftDrinks) as numSoftdrinks
+, (sum(SoftDrinks*Bananas)*count(*))/(sum(Bananas)*sum(SoftDrinks)) as Lift
+ from
+(
+SELECT basket_id,
+max(case when sub_commodity_desc='BANANAS' then 1 else 0 end) Bananas,
+max(case when commodity_desc='SOFT DRINKS' then 1 else 0 end) SoftDrinks,
+sum(sales_value) as sales_value
+from journey_transaction_data jt
+inner join journey_product jp
+on jt.product_id=jp.product_id
+where jp.department not in ('KIOSK-GAS', 'MISC SALES TRAN')
+group by basket_id) tab
+;
+# where tab.sales_value < 10;
+# where tab.sales_value >= 10 and tab.sales_value < 20;
+# where tab.sales_value >= 20 and tab.sales_value < 40;
+# where tab.sales_value >= 40 and tab.sales_value < 80;
+# where tab.sales_value >= 80;

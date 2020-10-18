@@ -1,0 +1,49 @@
+##################################################
+# Monthly sales totals for the business
+select shipdate
+    , month(shipdate) as sales_month
+	, year(shipdate) as sales_year
+	, sum(totalprice) as total_sales
+from orderline
+group by month(shipdate), year(shipdate);
+
+# Monthly sales totals for the best selling product
+select shipdate, productid, maxsales from (
+select shipdate, productid, max(totalprice_sum) as maxsales
+from (
+	select shipdate, productid, sum(totalprice) as totalprice_sum from orderline
+	group by productid
+) as a
+group by month(a.shipdate), year(a.shipdate)
+) as b;
+##################################################
+
+
+# Monthly sales totals for business
+select t1.shipdate, t1.sales_month, t1.sales_year, t1.total_sales
+, t2.productid, t2.maxsales
+FROM (
+	select shipdate
+    , month(shipdate) as sales_month
+	, year(shipdate) as sales_year
+	, sum(totalprice) as total_sales
+	from orderline
+	group by month(shipdate), year(shipdate)
+) as t1
+
+# Monthly sales totals for best selling product
+, (
+	select shipdate
+    ,month(shipdate) as sales_month
+	, year(shipdate) as sales_year
+    ,a.productid, 
+    max(a.totalprice_sum) as maxsales
+	from (
+		select shipdate, productid, sum(totalprice) as totalprice_sum 
+		from orderline
+		group by productid
+	) as a group by month(a.shipdate), year(a.shipdate)
+) as t2 
+
+where t1.sales_month = t2.sales_month 
+	and t1.sales_year = t2.sales_year;
